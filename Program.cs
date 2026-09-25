@@ -86,9 +86,7 @@ app.MapHub<SolicitudesHub>("/hubs/solicitudes");
 app.MapRazorPages()
    .WithStaticAssets();
 
-if (app.Environment.IsDevelopment())
-{
-    await DbInitializer.InitializeAsync(app.Services);
-}
+// Ejecutar seed existente (Identity, roles, usuarios, clientes y solicitudes) después de las migraciones
+await DbInitializer.InitializeAsync(app.Services);
 
 app.Run();
