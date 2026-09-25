@@ -1,13 +1,16 @@
 using System.Text.Json;
 using GestionCreditos.Data;
 using GestionCreditos.Models;
+using GestionCreditos.Models.Messaging;
 using GestionCreditos.Models.ViewModels;
+using GestionCreditos.Services.Messaging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
 
 namespace GestionCreditos.Controllers;
 
@@ -17,12 +20,16 @@ public class SolicitudesController : Controller
     private readonly ApplicationDbContext _context;
     private readonly UserManager<IdentityUser> _userManager;
     private readonly IDistributedCache _cache;
+    private readonly INotificacionPublisher _publisher;
+    private readonly ILogger<SolicitudesController> _logger;
 
-    public SolicitudesController(ApplicationDbContext context, UserManager<IdentityUser> userManager, IDistributedCache cache)
+    public SolicitudesController(ApplicationDbContext context, UserManager<IdentityUser> userManager, IDistributedCache cache, INotificacionPublisher publisher, ILogger<SolicitudesController> logger)
     {
         _context = context;
         _userManager = userManager;
         _cache = cache;
+        _publisher = publisher;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -192,6 +199,30 @@ public class SolicitudesController : Controller
             {
                 ModelState.AddModelError(string.Empty, "Ya tienes una solicitud de crédito pendiente.");
                 return View(modelo);
+            }
+
+            // Publicar evento SolicitudRegistrada en RabbitMQ (cola durable solicitudes.notificaciones) con persistencia y publisher confirms.
+            // Si falla la publicación, se conserva la solicitud en BD y se registra el error.
+            // Reenvío manual documentado: reutilizar el mismo MessageId para mantener idempotencia en el consumidor.
+            // Ejemplo: await _publisher.ReenviarAsync(messageId, solicitud.Id, usuarioId, fechaEventoUtc);
+            var usuarioId = _userManager.GetUserId(User) ?? string.Empty;
+            var messageId = Guid.NewGuid().ToString();
+            var evento = new SolicitudRegistradaEvent
+            {
+                MessageId = messageId,
+                SolicitudId = solicitud.Id,
+                UsuarioId = usuarioId,
+                FechaEventoUtc = DateTime.UtcNow,
+                Tipo = "SolicitudRegistrada"
+            };
+
+            var publicado = await _publisher.PublicarAsync(evento);
+            if (!publicado)
+            {
+                _logger.LogError(
+                    "No se pudo publicar SolicitudRegistrada MessageId={MessageId} SolicitudId={SolicitudId} UsuarioId={UsuarioId} FechaEventoUtc={FechaEventoUtc}. " +
+                    "Solicitud conservada en BD. Reenvio manual: reutilizar el mismo MessageId con INotificacionPublisher.ReenviarAsync(messageId, solicitudId, usuarioId, fechaEventoUtc).",
+                    messageId, solicitud.Id, usuarioId, evento.FechaEventoUtc);
             }
 
             TempData["MensajeExito"] = "Solicitud de crédito registrada correctamente.";
