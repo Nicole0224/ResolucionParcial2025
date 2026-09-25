@@ -20,6 +20,8 @@ public class ApplicationDbContext : IdentityDbContext
 
     public DbSet<SolicitudCredito> SolicitudesCredito => Set<SolicitudCredito>();
 
+    public DbSet<Notificacion> Notificaciones => Set<Notificacion>();
+
     /// <summary>Prefijo de la clave de caché del listado de solicitudes de un cliente.</summary>
     public const string PrefijoClaveListadoSolicitudes = "solicitudes:cliente:";
 
@@ -45,6 +47,7 @@ public class ApplicationDbContext : IdentityDbContext
 
         builder.ApplyConfiguration(new ClienteConfiguration());
         builder.ApplyConfiguration(new SolicitudCreditoConfiguration());
+        builder.ApplyConfiguration(new NotificacionConfiguration());
     }
 
     /// <summary>

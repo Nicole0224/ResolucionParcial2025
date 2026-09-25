@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using GestionCreditos.Data;
 using GestionCreditos.Hubs;
 using GestionCreditos.Infrastructure;
+using GestionCreditos.Services.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +22,8 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.Requ
     .AddEntityFrameworkStores<ApplicationDbContext>();
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
+builder.Services.AddSingleton<INotificacionPublisher, RabbitMqNotificacionPublisher>();
+builder.Services.AddHostedService<NotificacionConsumerService>();
 
 // Caché distribuida basada en Redis (configurable en appsettings), con respaldo en memoria
 // para que la aplicación siga funcionando si Redis no está disponible.
