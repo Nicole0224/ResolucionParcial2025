@@ -96,6 +96,76 @@ public class SolicitudesController : Controller
         return View(solicitud);
     }
 
+    [HttpGet]
+    public async Task<IActionResult> Crear()
+    {
+        var cliente = await GetClienteActivoAsync();
+        if (cliente is null)
+        {
+            TempData["MensajeError"] = "Necesitas tener un cliente activo para solicitar crédito.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        return View();
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Crear(CrearSolicitudViewModel modelo)
+    {
+        var cliente = await GetClienteActivoAsync();
+        if (cliente is null)
+        {
+            ModelState.AddModelError(string.Empty, "Necesitas tener un cliente activo para solicitar crédito.");
+            return View(modelo);
+        }
+
+        if (await _context.SolicitudesCredito.AnyAsync(s => s.ClienteId == cliente.Id && s.Estado == EstadoSolicitud.Pendiente))
+        {
+            ModelState.AddModelError(string.Empty, "Ya tienes una solicitud de crédito pendiente.");
+        }
+
+        if (modelo.MontoSolicitado > cliente.IngresosMensuales * 10)
+        {
+            ModelState.AddModelError(nameof(modelo.MontoSolicitado),
+                $"El monto solicitado no puede superar 10 veces tus ingresos mensuales ({cliente.IngresosMensuales * 10:C}).");
+        }
+
+        if (ModelState.IsValid)
+        {
+            var solicitud = new SolicitudCredito
+            {
+                ClienteId = cliente.Id,
+                MontoSolicitado = modelo.MontoSolicitado,
+                FechaSolicitud = DateTime.UtcNow,
+                Estado = EstadoSolicitud.Pendiente
+            };
+
+            _context.SolicitudesCredito.Add(solicitud);
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                ModelState.AddModelError(string.Empty, "Ya tienes una solicitud de crédito pendiente.");
+                return View(modelo);
+            }
+
+            TempData["MensajeExito"] = "Solicitud de crédito registrada correctamente.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        return View(modelo);
+    }
+
+    private async Task<Cliente?> GetClienteActivoAsync()
+    {
+        var cliente = await GetClienteAsync();
+        return cliente is { Activo: true } ? cliente : null;
+    }
+
     private async Task<Cliente?> GetClienteAsync()
     {
         var userId = _userManager.GetUserId(User);

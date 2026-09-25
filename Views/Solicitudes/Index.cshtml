@@ -4,7 +4,19 @@
     var estados = (IEnumerable<SelectListItem>)(Model.Estados ?? new SelectList(Array.Empty<SelectListItem>(), "Value", "Text"));
 }
 
-<h1>Mis solicitudes</h1>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">Mis solicitudes</h1>
+    <a asp-action="Crear" class="btn btn-primary">Nueva solicitud</a>
+</div>
+
+@if (TempData["MensajeExito"] is string mensajeExito)
+{
+    <div class="alert alert-success">@mensajeExito</div>
+}
+@if (TempData["MensajeError"] is string mensajeError)
+{
+    <div class="alert alert-warning">@mensajeError</div>
+}
 
 <form method="get" asp-controller="Solicitudes" asp-action="Index" class="border rounded p-3 mb-4 bg-light">
     <div class="row g-2 align-items-end">
