@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GestionCreditos.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260925032654_AddClienteYSolicitudCredito")]
-    partial class AddClienteYSolicitudCredito
+    [Migration("20260925034002_AgregarDominioClientes")]
+    partial class AgregarDominioClientes
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -26,32 +26,23 @@ namespace GestionCreditos.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Direccion")
-                        .HasMaxLength(250)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("FechaRegistro")
+                    b.Property<bool>("Activo")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(true);
 
-                    b.Property<string>("NombreCompleto")
-                        .IsRequired()
-                        .HasMaxLength(200)
+                    b.Property<decimal>("IngresosMensuales")
+                        .HasPrecision(18, 2)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Telefono")
-                        .HasMaxLength(20)
+                    b.Property<string>("UsuarioId")
+                        .IsRequired()
+                        .HasMaxLength(450)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Email")
+                    b.HasIndex("UsuarioId")
                         .IsUnique();
 
                     b.ToTable("Clientes", (string)null);
@@ -73,9 +64,6 @@ namespace GestionCreditos.Data.Migrations
                         .HasColumnType("TEXT")
                         .HasDefaultValue("Pendiente");
 
-                    b.Property<DateTime?>("FechaEvaluacion")
-                        .HasColumnType("TEXT");
-
                     b.Property<DateTime>("FechaSolicitud")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT")
@@ -85,17 +73,9 @@ namespace GestionCreditos.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Motivo")
-                        .IsRequired()
-                        .HasMaxLength(500)
+                    b.Property<string>("MotivoRechazo")
+                        .HasMaxLength(1000)
                         .HasColumnType("TEXT");
-
-                    b.Property<string>("Observaciones")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("PlazoMeses")
-                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -108,8 +88,6 @@ namespace GestionCreditos.Data.Migrations
                     b.ToTable("SolicitudesCredito", null, t =>
                         {
                             t.HasCheckConstraint("CK_SolicitudCredito_MontoPositivo", "[MontoSolicitado] > 0");
-
-                            t.HasCheckConstraint("CK_SolicitudCredito_PlazoValido", "[PlazoMeses] BETWEEN 1 AND 120");
                         });
                 });
 

@@ -12,25 +12,21 @@ public class ClienteConfiguration : IEntityTypeConfiguration<Cliente>
 
         builder.HasKey(c => c.Id);
 
-        builder.Property(c => c.NombreCompleto)
+        builder.Property(c => c.UsuarioId)
             .IsRequired()
-            .HasMaxLength(200);
+            .HasMaxLength(450);
 
-        builder.Property(c => c.Email)
-            .IsRequired()
-            .HasMaxLength(100);
-
-        builder.HasIndex(c => c.Email)
+        builder.HasIndex(c => c.UsuarioId)
             .IsUnique();
 
-        builder.Property(c => c.Telefono)
-            .HasMaxLength(20);
-
-        builder.Property(c => c.Direccion)
-            .HasMaxLength(250);
-
-        builder.Property(c => c.FechaRegistro)
+        builder.Property(c => c.IngresosMensuales)
             .IsRequired()
-            .HasDefaultValueSql("CURRENT_TIMESTAMP");
+            .HasPrecision(18, 2);
+
+        builder.Property(c => c.Activo)
+            .IsRequired()
+            .HasDefaultValue(true);
+
+        builder.HasCheckConstraint("CK_Clientes_IngresosPositivo", "[IngresosMensuales] > 0");
     }
 }

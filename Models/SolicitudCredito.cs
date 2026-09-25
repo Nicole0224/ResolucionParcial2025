@@ -10,15 +10,9 @@ public class SolicitudCredito
 
     public decimal MontoSolicitado { get; set; }
 
-    public int PlazoMeses { get; set; }
-
-    public string Motivo { get; set; } = string.Empty;
-
-    public string? Observaciones { get; set; }
+    public DateTime FechaSolicitud { get; set; }
 
     public EstadoSolicitud Estado { get; set; } = EstadoSolicitud.Pendiente;
 
-    public DateTime FechaSolicitud { get; set; }
-
-    public DateTime? FechaEvaluacion { get; set; }
+    public string? MotivoRechazo { get; set; }
 }

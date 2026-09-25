@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace GestionCreditos.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class AddClienteYSolicitudCredito : Migration
+    public partial class AgregarDominioClientes : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -17,11 +17,9 @@ namespace GestionCreditos.Data.Migrations
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    NombreCompleto = table.Column<string>(type: "TEXT", maxLength: 200, nullable: false),
-                    Email = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
-                    Telefono = table.Column<string>(type: "TEXT", maxLength: 20, nullable: true),
-                    Direccion = table.Column<string>(type: "TEXT", maxLength: 250, nullable: true),
-                    FechaRegistro = table.Column<DateTime>(type: "TEXT", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
+                    UsuarioId = table.Column<string>(type: "TEXT", maxLength: 450, nullable: false),
+                    IngresosMensuales = table.Column<decimal>(type: "TEXT", precision: 18, scale: 2, nullable: false),
+                    Activo = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
                 {
@@ -36,18 +34,14 @@ namespace GestionCreditos.Data.Migrations
                         .Annotation("Sqlite:Autoincrement", true),
                     ClienteId = table.Column<int>(type: "INTEGER", nullable: false),
                     MontoSolicitado = table.Column<decimal>(type: "TEXT", precision: 18, scale: 2, nullable: false),
-                    PlazoMeses = table.Column<int>(type: "INTEGER", nullable: false),
-                    Motivo = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
-                    Observaciones = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
-                    Estado = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false, defaultValue: "Pendiente"),
                     FechaSolicitud = table.Column<DateTime>(type: "TEXT", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
-                    FechaEvaluacion = table.Column<DateTime>(type: "TEXT", nullable: true)
+                    Estado = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false, defaultValue: "Pendiente"),
+                    MotivoRechazo = table.Column<string>(type: "TEXT", maxLength: 1000, nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_SolicitudesCredito", x => x.Id);
                     table.CheckConstraint("CK_SolicitudCredito_MontoPositivo", "[MontoSolicitado] > 0");
-                    table.CheckConstraint("CK_SolicitudCredito_PlazoValido", "[PlazoMeses] BETWEEN 1 AND 120");
                     table.ForeignKey(
                         name: "FK_SolicitudesCredito_Clientes_ClienteId",
                         column: x => x.ClienteId,
@@ -57,9 +51,9 @@ namespace GestionCreditos.Data.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Clientes_Email",
+                name: "IX_Clientes_UsuarioId",
                 table: "Clientes",
-                column: "Email",
+                column: "UsuarioId",
                 unique: true);
 
             migrationBuilder.CreateIndex(

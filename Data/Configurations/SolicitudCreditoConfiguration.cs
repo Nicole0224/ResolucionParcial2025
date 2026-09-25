@@ -16,15 +16,9 @@ public class SolicitudCreditoConfiguration : IEntityTypeConfiguration<SolicitudC
             .IsRequired()
             .HasPrecision(18, 2);
 
-        builder.Property(s => s.PlazoMeses)
-            .IsRequired();
-
-        builder.Property(s => s.Motivo)
+        builder.Property(s => s.FechaSolicitud)
             .IsRequired()
-            .HasMaxLength(500);
-
-        builder.Property(s => s.Observaciones)
-            .HasMaxLength(500);
+            .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         builder.Property(s => s.Estado)
             .IsRequired()
@@ -32,11 +26,8 @@ public class SolicitudCreditoConfiguration : IEntityTypeConfiguration<SolicitudC
             .HasMaxLength(20)
             .HasDefaultValue(EstadoSolicitud.Pendiente);
 
-        builder.Property(s => s.FechaSolicitud)
-            .IsRequired()
-            .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-        builder.Property(s => s.FechaEvaluacion);
+        builder.Property(s => s.MotivoRechazo)
+            .HasMaxLength(1000);
 
         builder.HasOne(s => s.Cliente)
             .WithMany(c => c.Solicitudes)
@@ -48,7 +39,10 @@ public class SolicitudCreditoConfiguration : IEntityTypeConfiguration<SolicitudC
         builder.HasIndex(s => s.Estado);
         builder.HasIndex(s => s.FechaSolicitud);
 
+        builder.HasIndex(s => s.ClienteId, "IX_SolicitudesCredito_ClienteId_PendienteUnico")
+            .IsUnique()
+            .HasFilter("Estado = 'Pendiente'");
+
         builder.HasCheckConstraint("CK_SolicitudCredito_MontoPositivo", "[MontoSolicitado] > 0");
-        builder.HasCheckConstraint("CK_SolicitudCredito_PlazoValido", "[PlazoMeses] BETWEEN 1 AND 120");
     }
 }
