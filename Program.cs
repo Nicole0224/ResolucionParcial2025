@@ -5,6 +5,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.Options;
 using GestionCreditos.Data;
+using GestionCreditos.Hubs;
 using GestionCreditos.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,6 +20,7 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.Requ
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
 builder.Services.AddControllersWithViews();
+builder.Services.AddSignalR();
 
 // Caché distribuida basada en Redis (configurable en appsettings), con respaldo en memoria
 // para que la aplicación siga funcionando si Redis no está disponible.
@@ -57,6 +59,7 @@ else
 }
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseSession();
 
 app.UseAuthorization();
@@ -67,6 +70,8 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
+
+app.MapHub<SolicitudesHub>("/hubs/solicitudes");
 
 app.MapRazorPages()
    .WithStaticAssets();
