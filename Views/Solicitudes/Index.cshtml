@@ -4,6 +4,8 @@
     var estados = (IEnumerable<SelectListItem>)(Model.Estados ?? new SelectList(Array.Empty<SelectListItem>(), "Value", "Text"));
 }
 
+<div id="notificaciones-solicitudes" aria-live="polite"></div>
+
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="mb-0">Mis solicitudes</h1>
     <a asp-action="Crear" class="btn btn-primary">Nueva solicitud</a>
@@ -79,7 +81,7 @@ else
                     EstadoSolicitud.Rechazado => "bg-danger",
                     _ => "bg-warning text-dark"
                 };
-                <tr>
+                <tr data-solicitud-id="@solicitud.Id">
                     <td>@solicitud.Id</td>
                     <td>@solicitud.MontoSolicitado.ToString("C")</td>
                     <td>@solicitud.FechaSolicitud.ToString("dd/MM/yyyy")</td>
@@ -95,4 +97,6 @@ else
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js" integrity="sha512-7SRCYIJtR6F8E3KYQ1x6BURT2VhBWvcXs89tLpmV2kP7sm+XTo4oHIgCW86dA5BiRTZJB4hIrig1mny/8b0QhPmA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="~/js/solicitudes-notificaciones.js" asp-append-version="true"></script>
 }

@@ -1,7 +1,9 @@
 using GestionCreditos.Data;
+using GestionCreditos.Hubs;
 using GestionCreditos.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace GestionCreditos.Controllers;
@@ -11,10 +13,12 @@ namespace GestionCreditos.Controllers;
 public class AnalistaController : Controller
 {
     private readonly ApplicationDbContext _context;
+    private readonly IHubContext<SolicitudesHub> _hubContext;
 
-    public AnalistaController(ApplicationDbContext context)
+    public AnalistaController(ApplicationDbContext context, IHubContext<SolicitudesHub> hubContext)
     {
         _context = context;
+        _hubContext = hubContext;
     }
 
     [HttpGet]
@@ -70,6 +74,14 @@ public class AnalistaController : Controller
 
         await _context.SaveChangesAsync();
 
+        await _hubContext.Clients.User(solicitud.Cliente.UsuarioId)
+            .SendAsync("SolicitudEstadoActualizado", new
+            {
+                SolicitudId = solicitud.Id,
+                Estado = solicitud.Estado.ToString(),
+                MotivoRechazo = solicitud.MotivoRechazo
+            });
+
         TempData["MensajeExito"] = $"Solicitud #{solicitud.Id} aprobada.";
         return RedirectToAction(nameof(Index));
     }
@@ -80,6 +92,7 @@ public class AnalistaController : Controller
     public async Task<IActionResult> Rechazar(int id, string? motivo)
     {
         var solicitud = await _context.SolicitudesCredito
+            .Include(s => s.Cliente)
             .FirstOrDefaultAsync(s => s.Id == id);
 
         if (solicitud is null)
@@ -104,6 +117,17 @@ public class AnalistaController : Controller
         solicitud.MotivoRechazo = motivo.Trim();
 
         await _context.SaveChangesAsync();
+
+        if (solicitud.Cliente is not null)
+        {
+            await _hubContext.Clients.User(solicitud.Cliente.UsuarioId)
+                .SendAsync("SolicitudEstadoActualizado", new
+                {
+                    SolicitudId = solicitud.Id,
+                    Estado = solicitud.Estado.ToString(),
+                    MotivoRechazo = solicitud.MotivoRechazo
+                });
+        }
 
         TempData["MensajeExito"] = $"Solicitud #{solicitud.Id} rechazada.";
         return RedirectToAction(nameof(Index));

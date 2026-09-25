@@ -5,6 +5,8 @@
 
 <h1>Detalle de la solicitud #@Model.Id</h1>
 
+<div id="notificaciones-solicitudes" aria-live="polite" class="mt-3"></div>
+
 <dl class="row mt-4">
     <dt class="col-sm-4">Monto solicitado</dt>
     <dd class="col-sm-8">@Model.MontoSolicitado.ToString("C")</dd>
@@ -13,12 +15,17 @@
     <dd class="col-sm-8">@Model.FechaSolicitud.ToString("dd/MM/yyyy HH:mm")</dd>
 
     <dt class="col-sm-4">Estado</dt>
-    <dd class="col-sm-8">@Model.Estado</dd>
+    <dd class="col-sm-8"><span id="detalle-estado">@Model.Estado</span></dd>
 
     @if (Model.Estado == EstadoSolicitud.Rechazado)
     {
         <dt class="col-sm-4">Motivo de rechazo</dt>
-        <dd class="col-sm-8">@(Model.MotivoRechazo ?? "Sin motivo indicado")</dd>
+        <dd class="col-sm-8"><span id="detalle-motivo">@(Model.MotivoRechazo ?? "Sin motivo indicado")</span></dd>
+    }
+    else
+    {
+        <dt class="col-sm-4" id="detalle-motivo-label" style="display:none;">Motivo de rechazo</dt>
+        <dd class="col-sm-8" id="detalle-motivo" style="display:none;"></dd>
     }
 </dl>
 
@@ -26,4 +33,38 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js" integrity="sha512-7SRCYIJtR6F8E3KYQ1x6BURT2VhBWvcXs89tLpmV2kP7sm+XTo4oHIgCW86dA5BiRTZJB4hIrig1mny/8b0QhPmA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        (function () {
+            if (typeof signalR === "undefined") return;
+            const solicitudId = @Model.Id;
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/hubs/solicitudes")
+                .withAutomaticReconnect()
+                .build();
+            connection.on("SolicitudEstadoActualizado", function (data) {
+                if (data.solicitudId !== solicitudId) return;
+                const estadoEl = document.getElementById("detalle-estado");
+                if (estadoEl) estadoEl.textContent = data.estado;
+                const motivoEl = document.getElementById("detalle-motivo");
+                const motivoLabel = document.getElementById("detalle-motivo-label");
+                if (data.estado === "Rechazado" && data.motivoRechazo) {
+                    if (motivoEl) { motivoEl.textContent = data.motivoRechazo; motivoEl.style.display = ""; }
+                    if (motivoLabel) motivoLabel.style.display = "";
+                }
+                const cont = document.getElementById("notificaciones-solicitudes");
+                if (cont) {
+                    const div = document.createElement("div");
+                    div.className = "alert alert-info mt-3";
+                    div.textContent = `Solicitud #${data.solicitudId} actualizada a ${data.estado}${data.motivoRechazo ? `: ${data.motivoRechazo}` : ""}`;
+                    cont.prepend(div);
+                }
+            });
+            connection.onreconnected(() => {
+                // Al reconectar, reconsultar estado actual vía endpoint existente (GET /Solicitudes/Details/{id})
+                window.location.reload();
+            });
+            connection.start().catch(function (err) { console.error(err.toString()); });
+        })();
+    </script>
 }
