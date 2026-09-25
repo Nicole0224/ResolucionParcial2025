@@ -8,7 +8,8 @@ public class SolicitudCreditoConfiguration : IEntityTypeConfiguration<SolicitudC
 {
     public void Configure(EntityTypeBuilder<SolicitudCredito> builder)
     {
-        builder.ToTable("SolicitudesCredito");
+        builder.ToTable("SolicitudesCredito", table => table
+            .HasCheckConstraint("CK_SolicitudCredito_MontoPositivo", "[MontoSolicitado] > 0"));
 
         builder.HasKey(s => s.Id);
 
@@ -42,7 +43,5 @@ public class SolicitudCreditoConfiguration : IEntityTypeConfiguration<SolicitudC
         builder.HasIndex(s => s.ClienteId, "IX_SolicitudesCredito_ClienteId_PendienteUnico")
             .IsUnique()
             .HasFilter("Estado = 'Pendiente'");
-
-        builder.HasCheckConstraint("CK_SolicitudCredito_MontoPositivo", "[MontoSolicitado] > 0");
     }
 }

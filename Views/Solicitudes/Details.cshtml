@@ -1,0 +1,29 @@
+@model GestionCreditos.Models.SolicitudCredito
+@{
+    ViewData["Title"] = $"Solicitud #{Model.Id}";
+}
+
+<h1>Detalle de la solicitud #@Model.Id</h1>
+
+<dl class="row mt-4">
+    <dt class="col-sm-4">Monto solicitado</dt>
+    <dd class="col-sm-8">@Model.MontoSolicitado.ToString("C")</dd>
+
+    <dt class="col-sm-4">Fecha de solicitud</dt>
+    <dd class="col-sm-8">@Model.FechaSolicitud.ToString("dd/MM/yyyy HH:mm")</dd>
+
+    <dt class="col-sm-4">Estado</dt>
+    <dd class="col-sm-8">@Model.Estado</dd>
+
+    @if (Model.Estado == EstadoSolicitud.Rechazado)
+    {
+        <dt class="col-sm-4">Motivo de rechazo</dt>
+        <dd class="col-sm-8">@(Model.MotivoRechazo ?? "Sin motivo indicado")</dd>
+    }
+</dl>
+
+<a asp-action="Index" class="btn btn-outline-secondary">Volver a mis solicitudes</a>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

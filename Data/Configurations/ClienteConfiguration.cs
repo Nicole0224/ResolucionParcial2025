@@ -8,7 +8,8 @@ public class ClienteConfiguration : IEntityTypeConfiguration<Cliente>
 {
     public void Configure(EntityTypeBuilder<Cliente> builder)
     {
-        builder.ToTable("Clientes");
+        builder.ToTable("Clientes", table => table
+            .HasCheckConstraint("CK_Clientes_IngresosPositivo", "[IngresosMensuales] > 0"));
 
         builder.HasKey(c => c.Id);
 
@@ -26,7 +27,5 @@ public class ClienteConfiguration : IEntityTypeConfiguration<Cliente>
         builder.Property(c => c.Activo)
             .IsRequired()
             .HasDefaultValue(true);
-
-        builder.HasCheckConstraint("CK_Clientes_IngresosPositivo", "[IngresosMensuales] > 0");
     }
 }

@@ -1,0 +1,86 @@
+@model GestionCreditos.Models.ViewModels.FiltroSolicitudesViewModel
+@{
+    ViewData["Title"] = "Mis solicitudes";
+    var estados = (IEnumerable<SelectListItem>)(Model.Estados ?? new SelectList(Array.Empty<SelectListItem>(), "Value", "Text"));
+}
+
+<h1>Mis solicitudes</h1>
+
+<form method="get" asp-controller="Solicitudes" asp-action="Index" class="border rounded p-3 mb-4 bg-light">
+    <div class="row g-2 align-items-end">
+        <div class="col-md-2">
+            <label asp-for="Estado" class="form-label"></label>
+            <select asp-for="Estado" asp-items="estados" class="form-select">
+                <option value="">Todos</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label asp-for="MontoDesde" class="form-label"></label>
+            <input asp-for="MontoDesde" class="form-control" type="number" min="0" step="0.01" />
+            <span asp-validation-for="MontoDesde" class="text-danger"></span>
+        </div>
+        <div class="col-md-2">
+            <label asp-for="MontoHasta" class="form-label"></label>
+            <input asp-for="MontoHasta" class="form-control" type="number" min="0" step="0.01" />
+            <span asp-validation-for="MontoHasta" class="text-danger"></span>
+        </div>
+        <div class="col-md-2">
+            <label asp-for="FechaDesde" class="form-label"></label>
+            <input asp-for="FechaDesde" class="form-control" type="date" />
+            <span asp-validation-for="FechaDesde" class="text-danger"></span>
+        </div>
+        <div class="col-md-2">
+            <label asp-for="FechaHasta" class="form-label"></label>
+            <input asp-for="FechaHasta" class="form-control" type="date" />
+            <span asp-validation-for="FechaHasta" class="text-danger"></span>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Filtrar</button>
+            <a asp-controller="Solicitudes" asp-action="Index" class="btn btn-outline-secondary">Limpiar</a>
+        </div>
+    </div>
+    <div asp-validation-summary="All" class="text-danger mt-2"></div>
+</form>
+
+@if (Model.Solicitudes.Count == 0)
+{
+    <div class="alert alert-info">No se encontraron solicitudes de crédito.</div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Monto solicitado</th>
+                <th scope="col">Fecha de solicitud</th>
+                <th scope="col">Estado</th>
+                <th scope="col"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var solicitud in Model.Solicitudes)
+            {
+                var badge = solicitud.Estado switch
+                {
+                    EstadoSolicitud.Aprobado => "bg-success",
+                    EstadoSolicitud.Rechazado => "bg-danger",
+                    _ => "bg-warning text-dark"
+                };
+                <tr>
+                    <td>@solicitud.Id</td>
+                    <td>@solicitud.MontoSolicitado.ToString("C")</td>
+                    <td>@solicitud.FechaSolicitud.ToString("dd/MM/yyyy")</td>
+                    <td><span class="badge @badge">@solicitud.Estado</span></td>
+                    <td>
+                        <a asp-action="Details" asp-route-id="@solicitud.Id">Ver detalle</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
