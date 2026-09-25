@@ -1,0 +1,68 @@
+@model List<SolicitudCredito>
+@using GestionCreditos.Models
+@{
+    ViewData["Title"] = "Panel de analista";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">Solicitudes pendientes</h1>
+</div>
+
+@if (TempData["MensajeExito"] is string mensajeExito)
+{
+    <div class="alert alert-success">@mensajeExito</div>
+}
+@if (TempData["MensajeError"] is string mensajeError)
+{
+    <div class="alert alert-warning">@mensajeError</div>
+}
+
+@if (Model.Count == 0)
+{
+    <div class="alert alert-info">No hay solicitudes pendientes de revisión.</div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Cliente</th>
+                <th scope="col">Monto solicitado</th>
+                <th scope="col">Ingresos mensuales</th>
+                <th scope="col">Límite aprobable (5x)</th>
+                <th scope="col">Fecha de solicitud</th>
+                <th scope="col">Decisión</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var solicitud in Model)
+            {
+                var limite = solicitud.Cliente.IngresosMensuales * 5;
+                <tr>
+                    <td>@solicitud.Id</td>
+                    <td>#@solicitud.ClienteId (@solicitud.Cliente.IngresosMensuales.ToString("C")/mes)</td>
+                    <td>@solicitud.MontoSolicitado.ToString("C")</td>
+                    <td>@solicitud.Cliente.IngresosMensuales.ToString("C")</td>
+                    <td>
+                        @limite.ToString("C")
+                        @if (solicitud.MontoSolicitado > limite)
+                        {
+                            <span class="badge bg-danger">Supera el límite</span>
+                        }
+                    </td>
+                    <td>@solicitud.FechaSolicitud.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td>
+                        <form asp-action="Aprobar" asp-route-id="@solicitud.Id" method="post" class="d-inline" onsubmit="return confirm('¿Aprobar la solicitud #@solicitud.Id?');">
+                            <button type="submit" class="btn btn-success btn-sm" @(solicitud.MontoSolicitado > limite ? "disabled" : "")>Aprobar</button>
+                        </form>
+                        <form asp-action="Rechazar" asp-route-id="@solicitud.Id" method="post" class="d-inline-flex flex-column align-items-start gap-1">
+                            <input type="text" name="motivo" class="form-control form-control-sm mt-1" placeholder="Motivo del rechazo" required />
+                            <button type="submit" class="btn btn-danger btn-sm">Rechazar</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
