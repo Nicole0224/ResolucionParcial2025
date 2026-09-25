@@ -1,0 +1,11 @@
+@using Microsoft.AspNetCore.Http
+@{
+    var ultimaSolicitudId = Context.Session.GetInt32("UltimaSolicitudId");
+    var ultimaSolicitudMonto = Context.Session.GetString("UltimaSolicitudMonto");
+}
+@if (ultimaSolicitudId.HasValue)
+{
+    <li class="nav-item">
+        <a class="nav-link text-success" asp-controller="Solicitudes" asp-action="Details" asp-route-id="@ultimaSolicitudId.Value">Ver última solicitud @ultimaSolicitudMonto</a>
+    </li>
+}

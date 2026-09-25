@@ -1,3 +1,4 @@
+using System.Text.Json;
 using GestionCreditos.Data;
 using GestionCreditos.Models;
 using GestionCreditos.Models.ViewModels;
@@ -6,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace GestionCreditos.Controllers;
 
@@ -14,11 +16,13 @@ public class SolicitudesController : Controller
 {
     private readonly ApplicationDbContext _context;
     private readonly UserManager<IdentityUser> _userManager;
+    private readonly IDistributedCache _cache;
 
-    public SolicitudesController(ApplicationDbContext context, UserManager<IdentityUser> userManager)
+    public SolicitudesController(ApplicationDbContext context, UserManager<IdentityUser> userManager, IDistributedCache cache)
     {
         _context = context;
         _userManager = userManager;
+        _cache = cache;
     }
 
     [HttpGet]
@@ -32,9 +36,7 @@ public class SolicitudesController : Controller
             return View(filtro);
         }
 
-        var query = _context.SolicitudesCredito
-            .AsNoTracking()
-            .Where(s => s.ClienteId == cliente.Id);
+        var solicitudes = await GetListadoCacheadAsync(cliente.Id);
 
         ValidarRangos(filtro);
 
@@ -42,37 +44,73 @@ public class SolicitudesController : Controller
         {
             if (filtro.Estado.HasValue)
             {
-                query = query.Where(s => s.Estado == filtro.Estado.Value);
+                solicitudes = solicitudes.Where(s => s.Estado == filtro.Estado.Value).ToList();
             }
 
             if (filtro.MontoDesde.HasValue)
             {
-                query = query.Where(s => s.MontoSolicitado >= filtro.MontoDesde.Value);
+                solicitudes = solicitudes.Where(s => s.MontoSolicitado >= filtro.MontoDesde.Value).ToList();
             }
 
             if (filtro.MontoHasta.HasValue)
             {
-                query = query.Where(s => s.MontoSolicitado <= filtro.MontoHasta.Value);
+                solicitudes = solicitudes.Where(s => s.MontoSolicitado <= filtro.MontoHasta.Value).ToList();
             }
 
             if (filtro.FechaDesde.HasValue)
             {
-                query = query.Where(s => s.FechaSolicitud >= filtro.FechaDesde.Value);
+                solicitudes = solicitudes.Where(s => s.FechaSolicitud >= filtro.FechaDesde.Value).ToList();
             }
 
             if (filtro.FechaHasta.HasValue)
             {
-                query = query.Where(s => s.FechaSolicitud <= filtro.FechaHasta.Value);
+                solicitudes = solicitudes.Where(s => s.FechaSolicitud <= filtro.FechaHasta.Value).ToList();
             }
         }
 
-        filtro.Solicitudes = await query
-            .OrderByDescending(s => s.FechaSolicitud)
-            .ToListAsync();
-
+        filtro.Solicitudes = solicitudes;
         filtro.Estados = BuildEstados();
 
         return View(filtro);
+    }
+
+    /// <summary>
+    /// Devuelve el listado completo de solicitudes del cliente, cacheado 60 segundos en Redis.
+    /// </summary>
+    private async Task<List<SolicitudCredito>> GetListadoCacheadAsync(int clienteId)
+    {
+        var clave = $"{ApplicationDbContext.PrefijoClaveListadoSolicitudes}{clienteId}";
+
+        try
+        {
+            var bytes = await _cache.GetAsync(clave);
+            if (bytes is not null)
+            {
+                return JsonSerializer.Deserialize<List<SolicitudCredito>>(bytes) ?? [];
+            }
+        }
+        catch (Exception)
+        {
+            // Si el caché falla, se consulta la base de datos.
+        }
+
+        var solicitudes = await _context.SolicitudesCredito
+            .AsNoTracking()
+            .Where(s => s.ClienteId == clienteId)
+            .OrderByDescending(s => s.FechaSolicitud)
+            .ToListAsync();
+
+        try
+        {
+            await _cache.SetAsync(clave, JsonSerializer.SerializeToUtf8Bytes(solicitudes),
+                new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60) });
+        }
+        catch (Exception)
+        {
+            // Sin caché, la consulta a la base de datos sigue funcionando.
+        }
+
+        return solicitudes;
     }
 
     [HttpGet]
@@ -92,6 +130,9 @@ public class SolicitudesController : Controller
         {
             return NotFound();
         }
+
+        HttpContext.Session.SetInt32("UltimaSolicitudId", solicitud.Id);
+        HttpContext.Session.SetString("UltimaSolicitudMonto", solicitud.MontoSolicitado.ToString("C"));
 
         return View(solicitud);
     }
